@@ -19,7 +19,7 @@ class User extends CI_Controller {
 
 		$data['user'] = $this->m_user->tampil_data()->result_array();
 
-		$this->load->view('v_topbar', $data);
+		$this->load->view('v_header', $data);
 		$this->load->view('user/v_user', $data);
 		$this->load->view('v_footer');
 	}

@@ -16,7 +16,6 @@
     </script>
 
   <!-- Vendor JS Files -->
-  <script src="https://cdn.tiny.cloud/1/your-API-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
   <script src="<?= base_url('NiceAdmin/assets/vendor/bootstrap/js/bootstrap.bundle.min.js'); ?>"></script>
   <script src="<?= base_url('NiceAdmin/assets/vendor/apexcharts/apexcharts.min.js');?>"></script>
   <script src="<?= base_url('NiceAdmin/assets/vendor/bootstrap/js/bootstrap.bundle.min.js');?>"></script>

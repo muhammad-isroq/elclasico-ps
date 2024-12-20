@@ -31,7 +31,7 @@ class Rental extends CI_Controller {
     //     $data['playstation'] = $this->M_rental->getPlaystation();
 
 
-    //     $this->load->view('v_topbar', $data);
+    //     $this->load->view('v_header', $data);
     //     $this->load->view('historyrental/v_historyrental', $data);
     //     $this->load->view('v_footer'); 
     // }
@@ -89,12 +89,12 @@ public function insert_rental() {
     $id_playstation = $this->input->post('id_playstation');
     $durasi = floatval($this->input->post('durasi'));
 
-    // Ambil harga dari tabel playstation berdasarkan id_playstation
-    $this->load->model('M_rental'); // Pastikan model diload
-    $harga_playstation = $this->M_rental->getHargaPlaystation($id_playstation);
+    // Ambil harga dari tabel playstation
+    $playstation = $this->M_rental->getPlaystationById($id_playstation);
+    $harga = $playstation->harga; // Asumsi ada kolom 'harga' di tabel playstation
 
     // Hitung total biaya
-    $total_biaya = $durasi * $harga_playstation;
+    $total_biaya = $harga * $durasi;
 
     $data = [
         'id_playstation' => $id_playstation,
@@ -104,10 +104,68 @@ public function insert_rental() {
         'status' => 'berlangsung'
     ];
 
+    // Jika durasi tidak ditentukan, set durasi ke NULL
+    if ($durasi == 0) {
+        $data['durasi'] = null; // Atau bisa juga dihapus dari array
+    }
+
     $this->M_rental->insert_data($data);
-    $this->session->set_flashdata('success', 'Data berhasil ditambah');
+    $this->session->set_flashdata('success','data berhasil di tambah');
     redirect('Rental');
 }
+
+public function getPlaystationPrice() {
+    $id_playstation = $this->input->post('id_playstation');
+    $playstation = $this->M_rental->getPlaystationById($id_playstation);
+    echo $playstation->harga;
+}
+
+public function akhiri_rental($id) {
+    // Ambil data rental berdasarkan ID
+    $rental = $this->M_rental->getRentalById($id);
+
+    // Jika durasi tidak ditentukan, hitung total biaya
+    if ($rental->durasi === null) {
+        $waktu_mulai = strtotime($rental->waktu_mulai);
+        $waktu_sekarang = time();
+        
+        // Hitung durasi dalam jam (positif)
+        $durasi = abs(($waktu_sekarang - $waktu_mulai) / 3600); // Durasi dalam jam (desimal)
+
+        // Pembulatan ke 2 desimal jika diperlukan
+        $durasi = round($durasi, 2);
+
+        // Ambil harga per jam dari tabel playstation
+        $playstation = $this->M_rental->getPlaystationById($rental->id_playstation);
+        $harga = $playstation->harga;
+
+        // Hitung total biaya
+        $total_biaya = $harga * $durasi;
+
+        // Pembulatan total biaya ke integer
+        $total_biaya = max(0, round($total_biaya)); // Pastikan total biaya tidak negatif
+
+        // Update total biaya dan durasi di database
+        $data = [
+            'total_biaya' => $total_biaya,
+            'durasi' => $durasi,
+            'status' => 'selesai'
+        ];
+    } else {
+        // Jika durasi sudah ada, cukup update status
+        $data = ['status' => 'selesai'];
+    }
+
+    // Update data rental di database
+    $this->M_rental->update_data($id, $data);
+
+    // Set flashdata dan redirect
+    $this->session->set_flashdata('edit', 'Rental berhasil diakhiri');
+    redirect('Rental');
+}
+
+
+
 
 
 public function update_rental() {

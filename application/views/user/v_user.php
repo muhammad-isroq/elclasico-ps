@@ -85,7 +85,8 @@
                 </div>
               </div>
             </div>
-            <table class="table table-hover">
+            <div class="table table-responsive">
+              <table class="table table-hover">
               <thead class="text-center">
                 <tr>
                   <th scope="col">No</th>
@@ -150,6 +151,7 @@
                   <?php $no++; } ?>
                 </tbody>
               </table>
+            </div>
             </div>
           </div>
         </div>

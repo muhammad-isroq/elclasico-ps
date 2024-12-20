@@ -89,8 +89,21 @@
                     </div>
                     <div class="form-group mb-3">
                       <label for="">Durasi</label>
-                      <input type="number" step="0.1" min="0.5" name="durasi" class="form-control" required>
+                      <select name="durasi" class="form-control" required>
+                        <option value="0">Tidak Ditentukan</option>
+                        <option value="0.5">0.5 jam</option>
+                        <option value="1">1 jam</option>
+                        <option value="2">2 jam</option>
+                        <option value="3">3 jam</option>
+                        <option value="4">4 jam</option>
+                        <option value="5">5 jam</option>
+                        <!-- Tambahkan opsi durasi lainnya sesuai kebutuhan -->
+                      </select>
                     </div>
+<!--                     <div class="form-group mb-3">
+                      <label for="">Total Biaya</label>
+                      <input type="number" name="total_biaya" class="form-control" required>
+                    </div> -->
                     <div class="modal-footer">
                       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                       <button type="submit" class="btn btn-primary">Save changes</button>
@@ -178,6 +191,13 @@
                     </div>
                     <a href="<?= base_url().'Rental/hapus_rental/'.$r->id_rental ?>" type="button" class="btn btn-danger " onclick="return confirm('Yakin ingin menghapus?');">hapus</a>
                   </td>
+                  <td>
+                    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#exampleModal2<?= $r->id_rental ?>">ubah</button>
+                    <a href="<?= base_url().'Rental/akhiri_rental/'.$r->id_rental ?>" type="button" class="btn btn-danger">Akhiri</a>
+                    <div class="modal fade" id="exampleModal2<?= $r->id_rental ?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                      <!-- Modal content -->
+                    </div>
+                  </td>
                 </tr>
                 <?php $no++; endforeach; ?>
               </tbody>
@@ -230,82 +250,119 @@
     container.innerHTML = ''; // Reset card sebelumnya
 
     rentals.forEach(rental => {
-      const endTime = new Date(new Date(rental.waktu_mulai).getTime() + rental.durasi * 60 * 60 * 1000);
-      const now = new Date();
+        const now = new Date();
+        let endTime;
 
-        if (now < endTime) { // Hanya render jika waktu sekarang masih dalam durasi
-          const card = document.createElement('div');
-          card.className = 'col-md-4 mb-4 mt-2';
-          card.innerHTML = `
-          <div class="card shadow">
-          <div class="card-body">
-          <h5 class="card-title">Tipe Konsol: ${rental.tipe_konsol}</h5>
-          <p class="card-title">Unit: ${rental.nomor_unit}</p>
-          <p>Waktu Mulai: ${rental.waktu_mulai}</p>
-          <p>Durasi: <span id="timer-${rental.id_rental}">Loading...</span></p>
-          <p>Total Biaya: Rp. ${rental.total_biaya}</p>
-          <p>Status: <strong>${rental.status}</strong></p>
-          </div>
-            </div>`;
-            container.appendChild(card);
+        // Cek apakah durasi adalah null
+        if (rental.durasi !== null) {
+            endTime = new Date(new Date(rental.waktu_mulai).getTime() + rental.durasi * 60 * 60 * 1000);
+        }
 
-            // Start countdown
+        // Render card
+        const card = document.createElement('div');
+        card.className = 'col-md-4 mb-4 mt-2';
+        card.innerHTML = `
+        <div class="card shadow">
+        <div class="card-body">
+        <h5 class="card-title">Tipe Konsol: ${rental.tipe_konsol}</h5>
+        <p class="card-title">Unit: ${rental.nomor_unit}</p>
+        <p>Waktu Mulai: ${rental.waktu_mulai}</p>
+        <p>Durasi: <span id="timer-${rental.id_rental}">${rental.durasi === null ? 'Tidak Ditentukan' : 'Loading...'}</span></p>
+        <p>Total Biaya: Rp. ${rental.total_biaya}</p>
+        <p>Status: <strong>${rental.status}</strong></p>
+        </div>
+        </div>`;
+        container.appendChild(card);
+
+        // Start countdown atau count-up
+        if (rental.durasi !== null) {
             startCountdown(`timer-${rental.id_rental}`, endTime, rental.nomor_unit, rental.tipe_konsol, rental.sound);
-          }
-        });
-  }
+        } else {
+            startCountUp(`timer-${rental.id_rental}`, rental.waktu_mulai);
+        }
+    });
+}
 
   function startCountdown(elementId, endTime, nomorUnit, tipeKonsol, soundPath) {
     let alertShown = false;
-  let audio = new Audio(soundPath); // Gunakan soundPath yang diberikan
+    let audio = new Audio(soundPath); // Gunakan soundPath yang diberikan
 
-  // Tambahkan offset waktu acak jika endTime sama
-  const now = new Date();
-  const randomOffset = Math.floor(Math.random() * 1000); // 0 - 999 ms acak
-  endTime = new Date(endTime.getTime() + randomOffset); // Tambahkan offset acak ke endTime
-
-  function updateTimer() {
+    // Tambahkan offset waktu acak jika endTime sama
     const now = new Date();
-    const remaining = endTime - now;
+    const randomOffset = Math.floor(Math.random() * 1000); // 0 - 999 ms acak
+    endTime = new Date(endTime.getTime() + randomOffset); // Tambahkan offset acak ke endTime
 
-    if (remaining > 0) {
-      const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-      const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-      const seconds = Math.floor((remaining % (60 * 1000)) / 1000);
+    let timerInterval; // Deklarasikan timerInterval di sini
 
-      document.getElementById(elementId).textContent = `${hours}h ${minutes}m ${seconds}s`;
+    function updateTimer() {
+        const now = new Date();
+        const remaining = endTime - now;
 
-      if (minutes === 10 && !alertShown) {
-        alertShown = true;
+        const timerElement = document.getElementById(elementId);
+        if (!timerElement) {
+            console.warn(`Element with ID ${elementId} not found. Timer will not update.`);
+            clearInterval(timerInterval); // Hentikan interval jika elemen tidak ada
+            return; // Keluar dari fungsi jika elemen tidak ada
+        }
 
-        // Play sound when the alert shows
-        audio.play();
+        if (remaining > 0) {
+            const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+            const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+            const seconds = Math.floor((remaining % (60 * 1000)) / 1000);
 
-        // Show the alert using SweetAlert
-        Swal.fire({
-          title: "Peringatan!",
-          text: `Waktu rental untuk Unit ${nomorUnit} (${tipeKonsol}) tinggal 10 menit!`,
-          icon: "warning",
-          confirmButtonText: "OK"
-        });
-      }
-    } else {
-      document.getElementById(elementId).textContent = "Selesai";
-      clearInterval(timerInterval);
+            timerElement.textContent = `${hours}h ${minutes}m ${seconds}s`;
 
-      // Hapus card dan perbarui tabel
-      const card = document.getElementById(elementId).closest(".card");
-      if (card) card.remove();
+            if (hours === 0 && minutes === 10 && !alertShown) {
+                alertShown = true;
 
-      fetchRentals(); // Refresh data untuk menyinkronkan tabel
+                // Play sound when the alert shows
+                audio.play();
+
+                // Show the alert using SweetAlert
+                Swal.fire({
+                    title: "Peringatan!",
+                    text: `Waktu rental untuk Unit ${nomorUnit} (${tipeKonsol}) tinggal 10 menit!`,
+                    icon: "warning",
+                    confirmButtonText: "OK"
+                });
+            }
+        } else {
+            timerElement.textContent = "Selesai";
+            clearInterval(timerInterval);
+
+            // Hapus card dan perbarui tabel
+            const card = timerElement.closest(".card");
+            if (card) card.remove();
+
+            fetchRentals(); // Refresh data untuk menyinkronkan tabel
+        }
     }
-  }
 
-  updateTimer();
-  const timerInterval = setInterval(updateTimer, 1000);
+    updateTimer();
+    timerInterval = setInterval(updateTimer, 1000); // Inisialisasi timerInterval di sini
 }
 
+function startCountUp(elementId, startTime) {
+    const timerElement = document.getElementById(elementId);
+    if (!timerElement) {
+        console.warn(`Element with ID ${elementId} not found. Count-up will not update.`);
+        return; // Keluar dari fungsi jika elemen tidak ada
+    }
 
+    function updateCountUp() {
+        const now = new Date();
+        const elapsed = now - new Date(startTime); // Hitung waktu yang telah berlalu dalam milidetik
+
+        const hours = Math.floor((elapsed % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+        const minutes = Math.floor((elapsed % (60 * 60 * 1000)) / (60 * 1000));
+        const seconds = Math.floor((elapsed % (60 * 1000)) / 1000);
+
+        timerElement.textContent = `${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    updateCountUp(); // Panggil sekali untuk menampilkan waktu awal
+    setInterval(updateCountUp, 1000); // Update setiap detik
+}
 
 
 function updateTable(rentals) {
@@ -318,63 +375,63 @@ function updateTable(rentals) {
 
     rentals.forEach(rental => {
       const row = `
-      <tr>
-      <td>${rental.id_rental}</td>
-      <td>${rental.nomor_unit}</td>
-      <td>${rental.tipe_konsol}</td>
-      <td>${rental.waktu_mulai}</td>
-      <td>${rental.durasi} jam</td>
-      <td>Rp. ${rental.total_biaya}</td>
-      <td>${rental.status}</td>
-      <td>
-      <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#exampleModal2${rental.id_rental}"><i class="ri-edit-2-fill"></i></button>
-
-      <a href="javascript:void(0);" 
-      onclick="confirmDelete('<?= base_url().'Rental/hapus_rental/' ?>${rental.id_rental}')" 
-      class="btn btn-danger">
-      <i class="ri-delete-bin-5-line"></i>
-      </a>
-      <div class="modal fade" id="exampleModal2${rental.id_rental}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-      <div class="modal-content">
-      <div class="modal-header">
-      <h1 class="modal-title fs-5" id="exampleModalLabel">Ubah Rental</h1>
-      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-      <form method="POST" action="<?= base_url('Rental/update_rental') ?>">
-      <input type="hidden" name="id_rental" value="${rental.id_rental}">
-      <div class="mb-3">
-      <label class="form-label">Nomor Unit</label>
-      <select name="id_playstation" class="form-control">
-      <option value="${rental.id_playstation}">${rental.nomor_unit}</option>
-      </select>
-      </div>
-      <div class="form-group mb-3">
-      <label for="">Waktu Mulai</label>
-      <input type="datetime-local" name="waktu_mulai" class="form-control" value="${rental.waktu_mulai}">
-      </div>
-      <div class="form-group mb-3">
-      <label for="">Durasi</label>
-      <input type="number" step="0.1" min="0.5" name="durasi" class="form-control" value="${rental.durasi}">
-      </div>
-      <div class="form-group mb-3">
-      <label for="">Total Biaya</label>
-      <input type="number" name="total_biaya" class="form-control" value="${rental.total_biaya}">
-      </div>
-      <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      <button type="submit" class="btn btn-primary">Save changes</button>
-      </div>
-      </form>
-      </div>
-      </div>
-      </div>
-      </div>
-      </td>
-      </tr>
-      `;
-      tableBody.append(row);
+<tr>
+<td>${rental.id_rental}</td>
+<td>${rental.nomor_unit}</td>
+<td>${rental.tipe_konsol}</td>
+<td>${rental.waktu_mulai}</td>
+<td>${rental.durasi === null ? 'Tidak Ditentukan' : rental.durasi + ' jam'}</td>
+<td>Rp. ${rental.total_biaya}</td>
+<td>${rental.status}</td>
+<td>
+<button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#exampleModal2${rental.id_rental}"><i class="ri-edit-2-fill"></i></button>
+<a href="javascript:void(0);" 
+onclick="confirmDelete('<?= base_url().'Rental/hapus_rental/' ?>${rental.id_rental}')" 
+class="btn btn-danger">
+<i class="ri-delete-bin-5-line"></i>
+</a>
+<a href="<?= base_url().'Rental/akhiri_rental/'.$r->id_rental ?>" type="button" class="btn btn-danger">Akhiri</a>
+<div class="modal fade" id="exampleModal2${rental.id_rental}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal-dialog">
+<div class="modal-content">
+<div class="modal-header">
+<h1 class="modal-title fs-5" id="exampleModalLabel">Ubah Rental</h1>
+<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+<form method="POST" action="<?= base_url('Rental/update_rental') ?>">
+<input type="hidden" name="id_rental" value="${rental.id_rental}">
+<div class="mb-3">
+<label class="form-label">Nomor Unit</label>
+<select name="id_playstation " class="form-control">
+<option value="${rental.id_playstation}">${rental.nomor_unit}</option>
+</select>
+</div>
+<div class="form-group mb-3">
+<label for="">Waktu Mulai</label>
+<input type="datetime-local" name="waktu_mulai" class="form-control" value="${rental.waktu_mulai}">
+</div>
+<div class="form-group mb-3">
+<label for="">Durasi</label>
+<input type="number" step="0.1" min="0.5" name="durasi" class="form-control" value="${rental.durasi !== null ? rental.durasi : ''}">
+</div>
+<div class="form-group mb-3">
+<label for="">Total Biaya</label>
+<input type="number" name="total_biaya" class="form-control" value="${rental.total_biaya}">
+</div>
+<div class="modal-footer">
+<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+<button type="submit" class="btn btn-primary">Save changes</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+</div>
+</td>
+</tr>
+`;
+tableBody.append(row);
     });
   }
 
@@ -424,12 +481,12 @@ function updateTable(rentals) {
         // Perbarui status rental setiap 60 detik
         setInterval(updateRentalStatus, 60000);    
 
-        document.querySelector('form').addEventListener('submit', function(e) {
-          const durasi = parseFloat(document.querySelector('input[name="durasi"]').value);
-          if (isNaN(durasi) || durasi < 0.5) {
-            alert("Durasi harus minimal 0.5 jam");
-            e.preventDefault();
-          }
-        });
+        // document.querySelector('form').addEventListener('submit', function(e) {
+        //   const durasi = parseFloat(document.querySelector('input[name="durasi"]').value);
+        //   if (isNaN(durasi) || durasi < 0.5) {
+        //     alert("Durasi harus minimal 0.5 jam");
+        //     e.preventDefault();
+        //   }
+        // });
 
       </script>

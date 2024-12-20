@@ -8,19 +8,32 @@ class M_rental extends CI_Model {
         return $this->db->get('playstation')->result();
     }
 
-    public function getHargaPlaystation($id_playstation) {
-        $this->db->select('harga');
-        $this->db->where('id_playstation', $id_playstation);
-    $query = $this->db->get('playstation'); // Ambil data dari tabel playstation
-    $result = $query->row();
-    return $result ? $result->harga : 0; // Kembalikan harga atau 0 jika tidak ditemukan
+    public function getPlaystationById($id_playstation) {
+    return $this->db->get_where('playstation', ['id_playstation' => $id_playstation])->row();
+}
+
+public function getRentalById($id_rental) {
+    return $this->db->get_where('rental', ['id_rental' => $id_rental])->row();
+}
+
+public function getPriceById($id)
+{
+    $this->db->select('harga');
+    $this->db->from('playstation');
+    $this->db->where('id_playstation', $id);
+    $query = $this->db->get();
+
+    if ($query->num_rows() > 0) {
+        return (float) $query->row()->harga; // Cast harga menjadi float
+    }
+    return 0;
 }
 
 
-public function getAllRental() {
-    $this->db->select('rental.*, playstation.nomor_unit, playstation.tipe_konsol, playstation.status');
-    $this->db->from('rental');
-    $this->db->join('playstation', 'rental.id_playstation = playstation.id_playstation');
+    public function getAllRental() {
+        $this->db->select('rental.*, playstation.nomor_unit, playstation.tipe_konsol, playstation.status');
+        $this->db->from('rental');
+        $this->db->join('playstation', 'rental.id_playstation = playstation.id_playstation');
     $this->db->where('rental.status', 'berlangsung');
     $this->db->where('playstation.status', 'TERSEDIA'); // Filter hanya status "berlangsung"
     $this->db->order_by('rental.waktu_mulai', 'DESC'); // Urutkan berdasarkan waktu mulai terbaru
@@ -41,7 +54,7 @@ public function getAllRentalNow() {
     $this->db->from('rental');
     $this->db->join('playstation', 'rental.id_playstation = playstation.id_playstation');
     $this->db->where('rental.status', 'berlangsung');
-    $this->db->where('NOW() BETWEEN rental.waktu_mulai AND ADDTIME(rental.waktu_mulai, SEC_TO_TIME(rental.durasi * 3600))');
+    $this->db->where('rental.durasi IS NULL OR NOW() BETWEEN rental.waktu_mulai AND ADDTIME(rental.waktu_mulai, SEC_TO_TIME(rental.durasi * 3600))');
     return $this->db->get()->result();
 }
 
