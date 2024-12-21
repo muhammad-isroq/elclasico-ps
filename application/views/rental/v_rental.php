@@ -167,19 +167,6 @@
                                 <label for="">Durasi</label>
                                 <input type="number" step="0.1" min="0.5" name="durasi" class="form-control" value="<?= $r->durasi ?>">
                               </div>
-                              <div class="form-group mb-3">
-                                <label for="">Total Biaya</label>
-                                <input type="number" name="total_biaya" class="form-control" value="<?= $r->total_biaya ?>">
-                              </div>
-                              <div class="input-group mb-3">
-                                <label class="input-group-text" for="inputGroupSelect01">Status</label>
-                                <select class="form-select" name="status" value="<?= $r->status ?>">
-                                  <option selected><?= $r->status;?></option>
-                                  <option value="BERLANGSUNG">BERLANGSUNG</option>
-                                  <option value="SELESAI">SELESAI</option>
-                                  <option value="DIBATALKAN">DIBATALKAN</option>
-                                </select>
-                              </div>
                               <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                 <button type="submit" class="btn btn-primary">Save changes</button>
@@ -245,12 +232,36 @@
     })
   }
 
+function startRealTimeCostCalculation(elementId, harga, startTime) {
+    const timerElement = document.getElementById(elementId);
+    if (!timerElement) {
+        console.warn(`Element with ID ${elementId} not found. Cost calculation will not update.`);
+        return; // Keluar dari fungsi jika elemen tidak ada
+    }
+
+    function updateCost() {
+        const now = new Date();
+        const elapsed = (now - new Date(startTime)) / (1000 * 60 * 60); // Hitung waktu yang telah berlalu dalam jam
+        const totalBiaya = Math.max(0, Math.floor(elapsed * harga)); // Hitung total biaya
+
+        // Update total biaya di elemen yang sesuai
+        const totalBiayaElement = document.getElementById(`total-biaya-${elementId}`);
+        if (totalBiayaElement) {
+            totalBiayaElement.textContent = `Rp. ${totalBiaya}`;
+        }
+    }
+
+    updateCost(); // Panggil sekali untuk menampilkan biaya awal
+    setInterval(updateCost, 1000); // Update setiap detik
+}
+
   function renderCards(rentals) {
     const container = document.getElementById('rental-cards');
     container.innerHTML = ''; // Reset card sebelumnya
 
     rentals.forEach(rental => {
         const now = new Date();
+        const hargaSewa = rental.harga_sewa;
         let endTime;
 
         // Cek apakah durasi adalah null
@@ -280,6 +291,7 @@
         } else {
             startCountUp(`timer-${rental.id_rental}`, rental.waktu_mulai);
         }
+        
     });
 }
 
@@ -403,7 +415,7 @@ class="btn btn-danger">
 <input type="hidden" name="id_rental" value="${rental.id_rental}">
 <div class="mb-3">
 <label class="form-label">Nomor Unit</label>
-<select name="id_playstation " class="form-control">
+<select name="id_playstation" class="form-control">
 <option value="${rental.id_playstation}">${rental.nomor_unit}</option>
 </select>
 </div>
@@ -415,10 +427,7 @@ class="btn btn-danger">
 <label for="">Durasi</label>
 <input type="number" step="0.1" min="0.5" name="durasi" class="form-control" value="${rental.durasi !== null ? rental.durasi : ''}">
 </div>
-<div class="form-group mb-3">
-<label for="">Total Biaya</label>
-<input type="number" name="total_biaya" class="form-control" value="${rental.total_biaya}">
-</div>
+
 <div class="modal-footer">
 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
 <button type="submit" class="btn btn-primary">Save changes</button>

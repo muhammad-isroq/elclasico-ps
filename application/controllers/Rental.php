@@ -168,23 +168,58 @@ public function akhiri_rental($id) {
 
 
 
-public function update_rental() {
+public function update_rental()
+{
     $id_rental = $this->input->post('id_rental');
     $id_playstation = $this->input->post('id_playstation');
     $waktu_mulai = $this->input->post('waktu_mulai');
     $durasi = $this->input->post('durasi');
-    $total_biaya = $this->input->post('total_biaya');
 
-    // Validasi dan update data di database
+    // Pastikan semua input ada
+    if (empty($id_rental) || empty($id_playstation) || empty($durasi)) {
+        $this->session->set_flashdata('error', 'Data tidak lengkap. Harap isi semua field.');
+        redirect('Rental');
+    }
+
+    // Ambil data PlayStation berdasarkan ID
+    $playstation = $this->M_rental->getPlaystationById($id_playstation);
+    
+    if (!$playstation || !isset($playstation->harga)) {
+        $this->session->set_flashdata('error', 'Data PlayStation tidak ditemukan.');
+        redirect('Rental');
+    }
+
+    $harga = $playstation->harga; // Harga per jam dari PlayStation
+
+    // Pastikan durasi dan harga valid
+    if (!is_numeric($durasi) || $durasi <= 0) {
+        $this->session->set_flashdata('error', 'Durasi harus lebih dari 0.');
+        redirect('Rental');
+    }
+
+    // Hitung total biaya
+    $total_biaya = $harga * $durasi;
+
+    // Siapkan data untuk update
     $data = [
         'waktu_mulai' => $waktu_mulai,
         'durasi' => $durasi,
         'total_biaya' => $total_biaya,
     ];
-    $this->M_rental->update_data($id_rental, $data); // Sesuaikan nama model
-    $this->session->set_flashdata('edit','data berhasil di update');
+
+    // Update data di database
+    $update_result = $this->M_rental->update_data($id_rental, $data);
+
+    // Beri notifikasi hasil
+    if ($update_result) {
+        $this->session->set_flashdata('edit', 'Data berhasil diupdate');
+    } else {
+        $this->session->set_flashdata('error', 'Gagal mengupdate data.');
+    }
+
     redirect('Rental');
 }
+
 
 
 public function hapus_rental($id)
